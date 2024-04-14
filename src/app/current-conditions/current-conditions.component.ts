@@ -19,4 +19,8 @@ export class CurrentConditionsComponent {
   showForecast(zipcode: string){
     this.router.navigate(['/forecast', zipcode])
   }
+
+  removeLocation(zipcode: string){
+    this.locationService.removeLocation(zipcode);
+  }
 }

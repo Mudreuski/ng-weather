@@ -12,6 +12,8 @@ import { ForecastsListComponent } from './forecasts-list/forecasts-list.componen
 import { CurrentConditionsComponent } from './current-conditions/current-conditions.component';
 import { MainPageComponent } from './main-page/main-page.component';
 import { routing } from './app.routing';
+import { TabsComponent } from './tabs/tabs.component';
+import { TabContentComponent } from './tab-content/tab-content.component';
 
 @NgModule({
   declarations: [
@@ -27,7 +29,9 @@ import { routing } from './app.routing';
     HttpClientModule,
     RouterModule,
     routing,
-    ServiceWorkerModule.register('/ngsw-worker.js', { enabled: environment.production })
+    ServiceWorkerModule.register('/ngsw-worker.js', {enabled: environment.production}),
+    TabsComponent,
+    TabContentComponent
   ],
   bootstrap: [AppComponent]
 })
