@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import { ReplaySubject } from 'rxjs';
 
+import { StorageService } from './storage.service';
+
 export const LOCATIONS : string = "locations";
 
 export interface Location {
@@ -22,20 +24,23 @@ export class LocationService {
   private locationAction$$ = new ReplaySubject<Location>();
   public locationAction$ = this.locationAction$$.asObservable();
 
-  constructor() {
+  constructor(private storageService: StorageService<string>) {
     const locString = localStorage.getItem(LOCATIONS);
     if (locString) this.locations = JSON.parse(locString);
 
     for (let loc of this.locations) this.locationAction$$.next({ zipcode: loc, action: LocationAction.Add });
   }
 
-  addLocation(zipcode: string) {
-    this.locations.push(zipcode);
-    localStorage.setItem(LOCATIONS, JSON.stringify(this.locations));
-    this.locationAction$$.next({ zipcode, action: LocationAction.Add });
+  addLocation(zipcode: string): void {
+    if (!this.storageService.getItem(zipcode)) {
+      //add check to remove existing
+      this.locations.push(zipcode);
+      localStorage.setItem(LOCATIONS, JSON.stringify(this.locations));
+      this.locationAction$$.next({ zipcode, action: LocationAction.Add });
+    }
   }
 
-  removeLocation(zipcode: string) {
+  removeLocation(zipcode: string): void {
     let index = this.locations.indexOf(zipcode);
 
     if (index !== -1) {

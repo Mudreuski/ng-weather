@@ -1,11 +1,13 @@
 import { Injectable, Signal, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
+import { tap } from 'rxjs/operators';
 
 import { CurrentConditions } from '../current-conditions/current-conditions.type';
 import { ConditionsAndZip } from '../conditions-and-zip.type';
 import { Forecast } from '../forecasts-list/forecast.type';
 import { LocationAction, LocationService } from './location.service';
+import { StorageService } from './storage.service';
 
 @Injectable({
     providedIn: 'root'
@@ -16,7 +18,11 @@ export class WeatherService {
   static ICON_URL = 'https://raw.githubusercontent.com/udacity/Sunshine-Version-2/sunshine_master/app/src/main/res/drawable-hdpi/';
   private currentConditions = signal<ConditionsAndZip[]>([]);
 
-  constructor(private http: HttpClient, private locationService: LocationService) {
+  constructor(
+      private http: HttpClient,
+      private locationService: LocationService,
+      private storageService: StorageService<CurrentConditions | Forecast>
+  ) {
     this.locationService.locationAction$.subscribe(location => {
         if (location.action === LocationAction.Add) {
             this.addCurrentConditions(location.zipcode);
@@ -27,8 +33,18 @@ export class WeatherService {
   }
 
   addCurrentConditions(zipcode: string): void {
-    this.http.get<CurrentConditions>(`${WeatherService.URL}/weather?zip=${zipcode},us&units=imperial&APPID=${WeatherService.APPID}`)
-      .subscribe(data => this.currentConditions.update(conditions => [...conditions, { zip: zipcode, data }]));
+    const condition = this.storageService.getItem(zipcode) as CurrentConditions;
+
+    if (!condition) {
+      //add check on error
+      this.http.get<CurrentConditions>(`${WeatherService.URL}/weather?zip=${zipcode},us&units=imperial&APPID=${WeatherService.APPID}`)
+          .subscribe(data => {
+            this.storageService.setItem(zipcode, data);
+            this.currentConditions.update(conditions => [...conditions, { zip: zipcode, data }]);
+          });
+    } else {
+      this.currentConditions.update(conditions => [...conditions, { zip: zipcode, data: condition }])
+    }
   }
 
   removeCurrentConditions(zipcode: string): void {
@@ -38,7 +54,9 @@ export class WeatherService {
       }
 
       return conditions;
-    })
+    });
+
+    this.storageService.removeItem(zipcode);
   }
 
   getCurrentConditions(): Signal<ConditionsAndZip[]> {
@@ -46,8 +64,14 @@ export class WeatherService {
   }
 
   getForecast(zipcode: string): Observable<Forecast> {
-    return this.http.get<Forecast>(`${WeatherService.URL}/forecast/daily?zip=${zipcode},us&units=imperial&cnt=5&APPID=${WeatherService.APPID}`);
+    const forecast = this.storageService.getItem(`${zipcode}-forecast`) as Forecast;
 
+    if (!forecast) {
+      return this.http.get<Forecast>(`${WeatherService.URL}/forecast/daily?zip=${zipcode},us&units=imperial&cnt=5&APPID=${WeatherService.APPID}`)
+          .pipe(tap(data => this.storageService.setItem(`${zipcode}-forecast`, data)));
+    }
+
+    return of(forecast);
   }
 
   getWeatherIcon(id: number): string {
