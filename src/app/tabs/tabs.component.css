@@ -1,4 +1,6 @@
 .nav-tabs {
+    cursor: pointer;
+
     li {
         &.active a {
             border: 1px solid #000;

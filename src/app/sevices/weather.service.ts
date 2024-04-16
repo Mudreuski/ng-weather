@@ -1,7 +1,7 @@
 import { Injectable, Signal, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
-import { tap } from 'rxjs/operators';
+import { EMPTY, Observable, of } from 'rxjs';
+import { catchError, tap } from 'rxjs/operators';
 
 import { CurrentConditions } from '../current-conditions/current-conditions.type';
 import { ConditionsAndZip } from '../conditions-and-zip.type';
@@ -13,7 +13,7 @@ import { StorageService } from './storage.service';
     providedIn: 'root'
 })
 export class WeatherService {
-  static URL = 'http://api.openweathermap.org/data/2.5';
+  static URL = 'https://api.openweathermap.org/data/2.5';
   static APPID = '5a4b2d457ecbef9eb2a71e480b947604';
   static ICON_URL = 'https://raw.githubusercontent.com/udacity/Sunshine-Version-2/sunshine_master/app/src/main/res/drawable-hdpi/';
   private currentConditions = signal<ConditionsAndZip[]>([]);
@@ -36,12 +36,17 @@ export class WeatherService {
     const condition = this.storageService.getItem(zipcode) as CurrentConditions;
 
     if (!condition) {
-      //add check on error
       this.http.get<CurrentConditions>(`${WeatherService.URL}/weather?zip=${zipcode},us&units=imperial&APPID=${WeatherService.APPID}`)
-          .subscribe(data => {
-            this.storageService.setItem(zipcode, data);
-            this.currentConditions.update(conditions => [...conditions, { zip: zipcode, data }]);
-          });
+        .pipe(
+          catchError(() => {
+            this.locationService.removeLocation(zipcode);
+            return EMPTY;
+          })
+        )
+        .subscribe(data => {
+          this.storageService.setItem(zipcode, data);
+          this.currentConditions.update(conditions => [...conditions, { zip: zipcode, data }]);
+        });
     } else {
       this.currentConditions.update(conditions => [...conditions, { zip: zipcode, data: condition }])
     }

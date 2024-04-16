@@ -23,21 +23,23 @@ export class TabsComponent implements AfterContentInit {
 
   private tabsLength: number = 0;
 
-  ngAfterContentInit() {
+  public ngAfterContentInit() {
+    // first initialization
     if (this.tabs) {
       this.selectTab(this.tabs.first);
       this.tabsLength = this.tabs.length;
     }
 
     this.tabs.changes.subscribe(() => {
-        if (this.tabs.length > this.tabsLength) {
-          this.tabsLength++;
-          this.selectTab(this.tabs.last);
-        }
+      if (this.tabs.length > this.tabsLength) {
+        this.selectTab(this.tabs.last);
+      }
+
+      this.tabsLength = this.tabs.length;
     });
   }
 
-  selectTab(tab: TabContentComponent): void {
+  protected selectTab(tab: TabContentComponent): void {
     if (tab) {
       Promise.resolve().then(() => {
         this.tabs.forEach(tab => tab.isActive = false);
@@ -46,9 +48,13 @@ export class TabsComponent implements AfterContentInit {
     }
   }
 
-  removeTab(id: string): void {
+  protected removeTab(id: string): void {
     this.tabs = this.tabs.filter((tab) => tab.id !== id);
-    this.selectTab(this.tabs[0]);
+
+    if (this.tabs.every((tab) => !tab.isActive)) {
+      this.selectTab(this.tabs[0]);
+    }
+
     this.tabsLength--;
     this.onRemoveTab.emit(id);
   }

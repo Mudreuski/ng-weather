@@ -33,7 +33,9 @@ export class LocationService {
 
   addLocation(zipcode: string): void {
     if (!this.storageService.getItem(zipcode)) {
-      //add check to remove existing
+      //check to remove existing location
+      this.removeLocation(zipcode);
+
       this.locations.push(zipcode);
       localStorage.setItem(LOCATIONS, JSON.stringify(this.locations));
       this.locationAction$$.next({ zipcode, action: LocationAction.Add });
@@ -41,7 +43,7 @@ export class LocationService {
   }
 
   removeLocation(zipcode: string): void {
-    let index = this.locations.indexOf(zipcode);
+    const index = this.locations.indexOf(zipcode);
 
     if (index !== -1) {
       this.locations.splice(index, 1);
